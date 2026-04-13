@@ -21,6 +21,18 @@ An enterprise-grade **Network Intrusion Detection System (NIDS)** powered by a r
 
 ---
 
+## 🖥️ Dashboard Modules
+
+The React interface is split into 5 highly specialized analytical views:
+
+1.  **System Dashboard:** High-level overview rendering real-time SVG line charts tracking network volume and an interactive donut chart breaking down threat distributions.
+2.  **Packet Analyzer:** A manual inspection form mapping directly to the NSL-KDD matrix. Includes a **Bulk CSV Downloader** allowing analysts to batch-test thousands of static `.csv` packets against the live API locally.
+3.  **Live Monitor:** Simulates active network traffic with continuous API fetching. Features strict thresholds that automatically trigger warning banners if the anomaly rate exceeds 30%.
+4.  **Alerts Center:** An incident response management queue. Threats detected globally across the app append here as actionable severity tickets.
+5.  **Model Info:** Educational glossary exploring the exact architecture of the classification algorithm, payload engineering parameters, and attack taxonomies.
+
+---
+
 ## 🏗️ Architecture
 
 This application operates on a decoupled Full-Stack layout:
