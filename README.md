@@ -1,99 +1,305 @@
-# 🛡️ Defense Matrix NIDS (Full-Stack Machine Learning NIDS)
+<div align="center">
 
-![Status](https://img.shields.io/badge/Status-Active-00c896?style=for-the-badge)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+```
+██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗███████╗    ███╗   ███╗ █████╗ ████████╗██████╗ ██╗██╗  ██╗
+██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝██╔════╝    ████╗ ████║██╔══██╗╚══██╔══╝██╔══██╗██║╚██╗██╔╝
+██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║███████╗█████╗      ██╔████╔██║███████║   ██║   ██████╔╝██║ ╚███╔╝ 
+██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║╚════██║██╔══╝      ██║╚██╔╝██║██╔══██║   ██║   ██╔══██╗██║ ██╔██╗ 
+██████╔╝███████╗██║     ███████╗██║ ╚████║███████║███████╗    ██║ ╚═╝ ██║██║  ██║   ██║   ██║  ██║██║██╔╝ ██╗
+╚═════╝ ╚══════╝╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝
+```
+
+### 🛡️ Defense Matrix — Full-Stack ML Network Intrusion Detection System
+
+<br/>
+
+![Status](https://img.shields.io/badge/Status-Active-00c896?style=for-the-badge&labelColor=0a0a0a)
+![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Machine Learning](https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
-![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+![Scapy](https://img.shields.io/badge/Scapy-Live_Sniffer-00c896?style=for-the-badge&labelColor=0a0a0a)
+![ML](https://img.shields.io/badge/Scikit--Learn-99.74%25_Accuracy-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![Framer](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
-An enterprise-grade **Network Intrusion Detection System (NIDS)** powered by a real-time Scikit-Learn **Random Forest Classifier**. Built with an elite, lightweight glassmorphism React interface and a secure, session-managed Python Flask backend.
+<br/>
+
+> **An enterprise-grade Network Intrusion Detection System** powered by a real-time Scikit-Learn Random Forest Classifier, hardware-level Scapy packet sniffing, and a blazing-fast Server-Sent Events (SSE) live stream — wrapped in a premium glassmorphism React dashboard.
+
+</div>
 
 ---
 
-## ✨ Core Features
+## 🚀 What Makes This Different
 
-*   **🧠 Real Machine Learning Engine:** Utilizes a highly trained Random Forest model boasting a **99.74% inference accuracy** measured against the legendary `NSL-KDD` intrusion dataset.
-*   **🔒 Secure Authorized API:** The Python backend requires cryptographically strong JWT/Session hashes (`Bearer` tokens via SQLite) preventing unauthorized payload scanning.
-*   **📡 Live Stream Inference:** A continuous Web-monitor component proxying real-time network parameter objects to the ML backend in <120ms intervals.
-*   **📂 Bulk CSV Processing:** A drag-and-drop feature enabling analysts to process thousands of raw traffic logs natively in the browser against the backend.
-*   **💎 Elite UI/UX:** Forged using TailwindCSS and Framer Motion physics. Ultra-sleek page sliding effects, layout glides, frosted glass panels, and deep radial color tones dynamically shift based on network danger levels.
+This isn't a toy demo. Every layer of the stack is production-grade:
+
+| Layer | Technology | Role |
+|---|---|---|
+| 🖥️ **Frontend** | React 19 + Vite + Framer Motion | Glassmorphism dashboard, SSE stream consumer |
+| 🐍 **Backend** | Python Flask + SQLAlchemy | Secure REST API, ML inference engine |
+| 🧠 **ML Model** | Scikit-Learn Random Forest | 99.74% accuracy on NSL-KDD dataset |
+| 📡 **Live Capture** | Scapy + Npcap | Real hardware-level packet sniffing |
+| 🔁 **Streaming** | Server-Sent Events (SSE) | Sub-100ms live inference pipeline |
+| 🔐 **Auth** | SQLite + Bearer Tokens | Cryptographic session management |
+
+---
+
+## ✨ Feature Highlights
+
+### 🧠 Machine Learning Engine
+- **Random Forest Classifier** trained on the legendary **NSL-KDD** dataset
+- **99.74% inference accuracy** across 4 major threat categories
+- 16-feature vector extraction: `duration`, `protocol_type`, `service`, `flag`, `src_bytes`, `dst_bytes`, `count`, `srv_count`, and more
+- `scikit-learn` Pipeline with `LabelEncoder` + `RandomForestClassifier`
+- Model weights serialized via `joblib` (`.pkl`) for instant cold-boot loading
+
+### 📡 Real-Time Hardware Packet Sniffing *(New)*
+- **Scapy daemon** runs as a background thread inside Flask on startup
+- Dynamically discovers the **active network interface** (Wi-Fi or Ethernet) via `conf.route`
+- Extracts statistical features from every live packet:
+  - Packet size, protocol (TCP/UDP/ICMP), service port mapping
+  - TCP flag analysis (`SF`, `S0`, `REJ`, `RSTO`)
+  - Flow duration tracking with a lightweight **TCP/UDP flow tracker**
+  - Connection rate metrics (`count`, `srv_count`, `same_srv_rate`, `diff_srv_rate`)
+- **No hardware modification** — 100% read-only passive capture
+
+### 🔁 Server-Sent Events (SSE) Live Stream *(New)*
+- Flask `/api/live_stream` endpoint pushes inferred packet JSON to all connected clients in real-time
+- React `EventSource` consumes the stream and renders packets to the Live Monitor table instantly
+- **Zero polling** — pure push-based architecture
+- Automatic threat escalation: if attack density in last 10 packets exceeds **30%**, a critical alert banner fires
+
+### 🔐 Secure Authentication System
+- Token-based auth via **SQLite** (`nids.db`) — no JWT libraries required
+- `Bearer` token in `Authorization` header + query param support (for SSE connections)
+- Session tokens regenerated on every login
+- Auto-logout with token invalidation on the backend
+- Pre-seeded demo admin account on first boot
+
+### 📂 Bulk CSV Processing *(Enhanced)*
+- **Real drag-and-drop** with animated border feedback — not just visual, fully functional
+- Supports **NSL-KDD / KDD99 column format** (41-column) with automatic header row detection
+- Processes up to **50 rows per batch** — each row sent to the Flask ML API individually
+- **Summary stats panel** after processing: Total / Normal / Attacks / API Errors
+- Error state clearly shows `API OFFLINE` (styled to match dark theme) instead of silent failures
+- Re-select the same file without refreshing — input value reset on each pick
+- Animated row entrance in results table
+
+### 💎 Premium UI / UX
+- **Glassmorphism panels** with `backdrop-blur` and layered transparency
+- **Framer Motion** physics: page slide transitions, layout animations, micro-hover effects
+- Dark radial color system: `accentPrimary` (teal glow) + `accentDanger` (red pulse)
+- Threat-reactive UI — the entire interface shifts tone when attacks are detected
+- `cyber-glow` and `cyber-glow-danger` shadow utilities on critical elements
+- Animated confidence bars, staggered table row entrances, pulsing status badges
 
 ---
 
 ## 🖥️ Dashboard Modules
 
-The React interface is split into 5 highly specialized analytical views:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🔐 NIDS Gateway Login                                           │
+│  ↓ (Bearer Token Issued)                                         │
+├──────────────┬──────────────────────────────────────────────────┤
+│  Sidebar Nav │  1. 📊 System Dashboard                          │
+│              │  2. 🔬 Packet Analyzer  ← Manual + Bulk CSV      │
+│              │  3. 📡 Live Monitor     ← SSE + Scapy Stream     │
+│              │  4. 🚨 Alerts Center    ← Incident Queue          │
+│              │  5. 🧬 Model Info       ← Architecture Glossary  │
+└──────────────┴──────────────────────────────────────────────────┘
+```
 
-1.  **System Dashboard:** High-level overview rendering real-time SVG line charts tracking network volume and an interactive donut chart breaking down threat distributions.
-2.  **Packet Analyzer:** A manual inspection form mapping directly to the NSL-KDD matrix. Includes a **Bulk CSV Downloader** allowing analysts to batch-test thousands of static `.csv` packets against the live API locally.
-3.  **Live Monitor:** Simulates active network traffic with continuous API fetching. Features strict thresholds that automatically trigger warning banners if the anomaly rate exceeds 30%.
-4.  **Alerts Center:** An incident response management queue. Threats detected globally across the app append here as actionable severity tickets.
-5.  **Model Info:** Educational glossary exploring the exact architecture of the classification algorithm, payload engineering parameters, and attack taxonomies.
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | **System Dashboard** | Real-time SVG line charts for network volume + threat distribution donut chart |
+| 2 | **Packet Analyzer** | 16-feature manual form with sample presets + Bulk CSV upload with drag-and-drop |
+| 3 | **Live Monitor** | SSE-powered real-time table fed by hardware Scapy packet sniffing |
+| 4 | **Alerts Center** | Incident response queue — auto-populated by both manual and live detections |
+| 5 | **Model Info** | Explore the Random Forest architecture, feature weights, and attack taxonomy |
 
 ---
 
 ## 🏗️ Architecture
 
-This application operates on a decoupled Full-Stack layout:
-
-1.  **Frontend (React/Vite):** Runs on `localhost:5173`. Handles the presentation layer, session management, and asynchronous data batching.
-2.  **Backend (Python/Flask):** Runs on `localhost:5000`. Operates the SQLite security matrix (`nids.db`) and handles complex `pandas` label-encoding before passing strings into the loaded `joblib` Random Forest Matrix.
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  BROWSER (React + Vite)  →  localhost:5173                              │
+│                                                                          │
+│   EventSource ──────────────────────────────────┐                       │
+│   fetch('/api/predict')  ──────────────┐        │                       │
+│   fetch('/api/login')    ──────────┐   │        │                       │
+└───────────────────────────────────┼───┼─────────┼───────────────────────┘
+                                    │   │         │
+                            HTTPS / REST + SSE    │
+                                    │   │         │
+┌───────────────────────────────────┼───┼─────────┼───────────────────────┐
+│  FLASK BACKEND  →  localhost:5000 │   │         │                       │
+│                                   ▼   ▼         │                       │
+│  /api/login   → SQLite Auth    ┌─────────────┐  │                       │
+│  /api/predict → ML Inference   │  Flask App  │  │                       │
+│  /api/live_stream → SSE Push ◄─┤  (app.py)   │──┘                       │
+│  /api/sniffer_status           └──────┬──────┘                          │
+│                                       │                                  │
+│              ┌────────────────────────┤                                  │
+│              ▼                        ▼                                  │
+│  ┌─────────────────────┐   ┌────────────────────────┐                  │
+│  │  Random Forest .pkl  │   │  Scapy Sniffer Thread  │                  │
+│  │  + LabelEncoders.pkl │   │  (feature_extractor.py)│                  │
+│  │  (scikit-learn)      │   │  → FlowTracker         │                  │
+│  └─────────────────────┘   │  → process_packet()     │                  │
+│                             └────────────────────────┘                  │
+│                                       │                                  │
+│                              NIC / Network Card                          │
+│                           (Live Packet Capture)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-You must have **Node.js (v20+)** and **Python (v3.11+)** installed.
 
-### 1. Start the Python API & ML Engine
-Ensure you have the required dependencies installed (Flask, Flask-CORS, Flask-SQLAlchemy, Scikit-Learn, Pandas, Numpy, Joblib).
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | v20+ | For the React frontend |
+| Python | v3.11+ | For the Flask backend |
+| Npcap | Latest | **Required** for live packet capture on Windows |
+| Admin Rights | — | **Required** to run Scapy on Windows |
+
+### Step 1 — Install Python Dependencies
+
+```bash
+pip install flask flask-cors flask-sqlalchemy werkzeug scikit-learn pandas numpy joblib scapy
+```
+
+### Step 2 — Train the ML Model *(First Run Only)*
+
 ```bash
 cd backend
-
-# On the very first run, download the dataset and train the weights globally:
 python train_model.py
+```
 
-# Once the .pkl files are generated, boot the API:
+> Downloads the NSL-KDD dataset, trains the Random Forest classifier, and saves `nsl_kdd_rf_model.pkl` + `label_encoders.pkl` to the project root.
+
+### Step 3 — Start the Flask Backend
+
+> ⚠️ **Run as Administrator** for live Scapy packet capture to work!
+
+```bash
+# Right-click your terminal → "Run as Administrator", then:
+cd "Major pro/backend"
 python app.py
 ```
-> *The backend will automatically spawn a local `sqlite` database and seed a demo user.*
 
-### 2. Start the React Interface
-Open a second terminal window in the root directory.
+On startup you will see:
+```
+============================================================
+  NIDS Backend Server - Startup Diagnostics
+============================================================
+  Model Loaded:     YES
+  Scapy Available:  YES
+  Admin Privileges: YES
+  Npcap Driver:     FOUND
+============================================================
+  Sniffer thread launched successfully!
+```
+
+### Step 4 — Start the React Frontend
+
+Open a second terminal:
+
 ```bash
-# Install NPM dependencies
 npm install
-
-# Start the Vite development server
 npm run dev
 ```
 
-### 3. Demo Access Credentials
-When you navigate to `http://localhost:5173`, the system will intercept you at the NIDS Gateway. Use the pre-seeded credentials to unlock the interface:
-*   **Identifier:** `admin`
-*   **Passphrase:** `admin123`
+### Step 5 — Login
+
+Navigate to `http://localhost:5173` and use the pre-seeded credentials:
+
+```
+Identifier : admin
+Passphrase : admin123
+```
 
 ---
 
-## 🧬 Threat Taxonomy / Known Signatures
+## 📡 Live Sniffer Requirements (Windows)
 
-The active Random Forest classifier is capable of determining 4 major threat categories mathematically, independent of heuristic rules:
-1.  **Denial of Service (DoS):** (e.g., *Neptune, Smurf*) Identifying massive bandwidth consumption or connection-rate spikes.
-2.  **Probing:** (e.g., *IPsweep, Nmap*) Identifying vulnerability mapping techniques.
-3.  **R2L (Remote to Local):** (e.g., *Guess_Passwd, FTP_Write*) Identifying brute-force and remote payload dropping.
-4.  **U2R (User to Root):** (e.g., *Buffer_Overflow*) Identifying privilege escalation patterns.
+The hardware packet sniffer requires two things on Windows:
+
+| Requirement | How to Get It |
+|---|---|
+| **Npcap Driver** | Download from [npcap.com](https://npcap.com/#download) and install |
+| **Admin Rights** | Right-click VS Code / Terminal → *Run as Administrator* |
+
+> If either requirement is unmet, the Live Monitor will display a diagnostic banner listing exactly what is missing. The rest of the app (Manual Analyzer, Bulk CSV, Alerts) continues to work normally.
 
 ---
 
-## 🛠️ Built With
+## 🧬 Threat Taxonomy
 
-*   **Vite & React** - Frontend architecture runtime
-*   **Tailwind CSS v4** - Styling engine and custom layout configuration
-*   **Framer Motion** - 60fps physics animations and routing glides
-*   **Recharts** - Dynamic, reactive SVG chart rendering
-*   **Flask & SQLAlchemy** - Fast HTTP microframework and ORM layer
-*   **Scikit-Learn** - Primary ML mathematical backend 
+The Random Forest model detects **4 major intrusion categories** — purely from statistical network features, without signature rules:
 
-*Developed as a premier Full-Stack cybersecurity administration tool.*
+| Category | Examples | Detection Signal |
+|---|---|---|
+| **DoS** (Denial of Service) | Neptune, Smurf, Land | Massive `src_bytes` spike, zero `dst_bytes`, high `count` |
+| **Probe** | IPsweep, Nmap, Portsweep | High `diff_srv_rate`, low `same_srv_rate`, many unique services |
+| **R2L** (Remote to Local) | Guess_Passwd, FTP_Write | High `num_failed_logins`, `su_attempted = 1` |
+| **U2R** (User to Root) | Buffer_Overflow, Rootkit | Low traffic volume + `su_attempted` + `logged_in` state |
+
+---
+
+## 🛠️ Tech Stack
+
+```
+Frontend                    Backend                     ML Pipeline
+─────────────────────       ─────────────────────       ─────────────────────
+React 19                    Python 3.11                 Scikit-Learn
+Vite 8                      Flask                       Random Forest (500 trees)
+TailwindCSS v4              Flask-CORS                  LabelEncoder (3 features)
+Framer Motion               Flask-SQLAlchemy            Pandas DataFrame
+Recharts                    Werkzeug (Auth)             NumPy
+Lucide React                Scapy (Sniffer)             Joblib (.pkl serialization)
+EventSource (SSE)           SQLite (nids.db)            NSL-KDD Dataset
+```
+
+---
+
+## 📁 Project Structure
+
+```
+Major pro/
+├── backend/
+│   ├── app.py                  # Flask API + Scapy daemon + SSE endpoint
+│   ├── feature_extractor.py    # FlowTracker + 16-feature extraction from raw packets
+│   ├── train_model.py          # NSL-KDD downloader + Random Forest trainer
+│   └── nids.db                 # SQLite auth database (auto-generated)
+├── src/
+│   ├── components/
+│   │   ├── Dashboard.jsx        # System overview + live charts
+│   │   ├── PacketAnalyzer.jsx   # Manual form + Bulk CSV upload
+│   │   ├── LiveMonitor.jsx      # SSE stream consumer + sniffer status
+│   │   ├── AlertsCenter.jsx     # Incident response queue
+│   │   ├── ModelInfo.jsx        # Architecture glossary
+│   │   └── Login.jsx            # Secure gateway
+│   ├── utils/
+│   │   └── api.js               # Authenticated fetch helpers
+│   └── App.jsx                  # Router + global alert state
+├── nsl_kdd_rf_model.pkl         # Trained model weights
+├── label_encoders.pkl           # Categorical feature encoders
+└── KDDTrain.txt                 # NSL-KDD training dataset
+```
+
+---
+
+<div align="center">
+
+**Built as a premier Full-Stack Cybersecurity Research Platform**
+
+*Real packets · Real ML · Real-time*
+
+</div>
