@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Network, Pause, Play, AlertOctagon } from 'lucide-react';
-import { generateRandomPacketFeatures, simulateMLPrediction } from '../utils/api';
+import { Network, Pause, Play, AlertOctagon, ShieldAlert, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LiveMonitor = ({ onAlertGenerated }) => {
@@ -8,30 +7,56 @@ const LiveMonitor = ({ onAlertGenerated }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [filter, setFilter] = useState('all'); 
   const [attackRate, setAttackRate] = useState(0);
+  const [statusInfo, setStatusInfo] = useState({
+    active: false,
+    error: 'Checking sniffer status...',
+    is_admin: false,
+    npcap_installed: false,
+    scapy_installed: false
+  });
   const tableRef = useRef(null);
 
+  // Check sniffer status periodically
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const token = localStorage.getItem('nids_token');
+        const res = await fetch('http://127.0.0.1:5000/api/sniffer_status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStatusInfo(data);
+        } else {
+          setStatusInfo(prev => ({ ...prev, error: 'Could not fetch status from backend API' }));
+        }
+      } catch (err) {
+        console.error("Failed to check sniffer status", err);
+        setStatusInfo(prev => ({ ...prev, error: 'Backend server is offline or unreachable' }));
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // SSE Stream
   useEffect(() => {
     if (isPaused) return;
 
-    let isSubscribed = true;
+    const token = localStorage.getItem('nids_token');
+    const eventSource = new EventSource(`http://127.0.0.1:5000/api/live_stream?token=${token}`);
 
-    const fetchNextPacket = async () => {
-      if (!isSubscribed || isPaused) return;
-      
-      const features = generateRandomPacketFeatures();
-      
+    eventSource.onmessage = (event) => {
       try {
-        const pred = await simulateMLPrediction(features);
-        
+        const data = JSON.parse(event.data);
         const newPacket = {
-          id: `pkt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          id: `pkt-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           timestamp: new Date().toLocaleTimeString(),
-          srcIP: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-          dstIP: '192.168.1.100',
-          protocol: features.protocol_type.toUpperCase(),
-          bytes: features.src_bytes + features.dst_bytes,
-          duration: features.duration,
-          ...pred
+          ...data
         };
 
         setPackets(prev => {
@@ -57,19 +82,19 @@ const LiveMonitor = ({ onAlertGenerated }) => {
           
           return updated;
         });
-
       } catch (err) {
-        console.error("Packet stream error", err);
-      }
-      
-      if (isSubscribed && !isPaused) {
-        setTimeout(fetchNextPacket, 1500);
+        console.error("SSE parsing error", err);
       }
     };
 
-    fetchNextPacket();
+    eventSource.onerror = (error) => {
+      console.error("SSE stream error", error);
+      eventSource.close();
+    };
 
-    return () => { isSubscribed = false; };
+    return () => {
+      eventSource.close();
+    };
   }, [isPaused, onAlertGenerated]);
 
   useEffect(() => {
@@ -94,7 +119,20 @@ const LiveMonitor = ({ onAlertGenerated }) => {
       <div className="flex items-center justify-between border-b border-gray-800/80 pb-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-8 w-2 bg-accentPrimary rounded-full cyber-glow" />
-          <h2 className="text-2xl font-bold font-display uppercase tracking-wider text-white">Live Network Monitor</h2>
+          <div>
+            <h2 className="text-2xl font-bold font-display uppercase tracking-wider text-white flex items-center gap-3">
+              Live Network Monitor
+              {statusInfo?.active ? (
+                <span className="text-[10px] bg-accentPrimary/10 text-accentPrimary border border-accentPrimary/30 px-2 py-0.5 rounded font-mono flex items-center gap-1.5 normal-case">
+                  <CheckCircle size={10} /> Sniffer Active
+                </span>
+              ) : (
+                <span className="text-[10px] bg-accentDanger/10 text-accentDanger border border-accentDanger/30 px-2 py-0.5 rounded font-mono flex items-center gap-1.5 normal-case animate-pulse">
+                  <AlertOctagon size={10} /> Sniffer Inactive
+                </span>
+              )}
+            </h2>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">
@@ -127,7 +165,29 @@ const LiveMonitor = ({ onAlertGenerated }) => {
       </div>
 
       <AnimatePresence>
-        {attackRate >= 30 && (
+        {statusInfo && !statusInfo.active && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-accentDanger/10 backdrop-blur-md border border-accentDanger/30 p-4 rounded-lg flex items-start gap-4 text-accentDanger shadow-[0_0_20px_rgba(255,59,92,0.15)] shrink-0"
+          >
+            <ShieldAlert size={28} className="mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <h4 className="font-bold tracking-wider font-display text-sm">HARDWARE PACKET SNIFFER OFFLINE</h4>
+              <p className="text-xs font-mono opacity-90 leading-relaxed">
+                {statusInfo.error || "The real-time network sniffer is currently disabled."}
+              </p>
+              <div className="pt-2 flex flex-wrap gap-x-6 gap-y-1 text-[10px] font-mono">
+                <span>Admin Rights: <strong className={statusInfo.is_admin ? "text-accentPrimary" : "text-accentDanger"}>{statusInfo.is_admin ? "YES" : "NO (REQUIRED)"}</strong></span>
+                <span>Npcap Installed: <strong className={statusInfo.npcap_installed ? "text-accentPrimary" : "text-accentDanger"}>{statusInfo.npcap_installed ? "YES" : "NO (REQUIRED)"}</strong></span>
+                <span>Scapy Installed: <strong className={statusInfo.scapy_installed ? "text-accentPrimary" : "text-accentDanger"}>{statusInfo.scapy_installed ? "YES" : "NO (REQUIRED)"}</strong></span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {attackRate >= 30 && statusInfo?.active && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -160,11 +220,16 @@ const LiveMonitor = ({ onAlertGenerated }) => {
           className="flex-1 overflow-y-auto p-2 space-y-2 scroll-smooth"
         >
           {filteredPackets.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-600 font-mono">
+            <div className="h-full flex flex-col items-center justify-center text-gray-600 font-mono p-8 text-center">
               <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}>
                 <Network size={32} className="mb-2 opacity-50 mx-auto" />
               </motion.div>
-              <p>Awaiting API inferences from Python Backend...</p>
+              <p className="text-sm font-medium">Awaiting API inferences from Python Backend...</p>
+              {statusInfo && !statusInfo.active && (
+                <p className="text-xs text-accentDanger mt-2 font-mono">
+                  Diagnostics: Please check status indicators above to troubleshoot offline sniffer.
+                </p>
+              )}
             </div>
           ) : (
             <AnimatePresence initial={false}>

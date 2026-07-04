@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Cpu, Terminal, AlertTriangle, ShieldCheck, UploadCloud, FileText } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Cpu, Terminal, AlertTriangle, ShieldCheck, UploadCloud, FileText, XCircle } from 'lucide-react';
 import { simulateMLPrediction } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,6 +35,10 @@ const PacketAnalyzer = ({ onAlertGenerated }) => {
   const fileInputRef = useRef(null);
   const [bulkResults, setBulkResults] = useState([]);
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+  const [bulkError, setBulkError] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [bulkStats, setBulkStats] = useState(null);
   
   const [features, setFeatures] = useState({
     duration: 0,
@@ -119,77 +123,140 @@ const PacketAnalyzer = ({ onAlertGenerated }) => {
     setResult(null);
   };
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
+  const processFile = useCallback(async (file) => {
     if (!file) return;
+    // Accept only .csv or .txt
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+      setBulkError('Please upload a .csv or .txt file.');
+      return;
+    }
 
     setIsProcessingBulk(true);
     setBulkResults([]);
+    setBulkError(null);
+    setBulkStats(null);
+    setUploadedFileName(file.name);
     
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const text = e.target.result;
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
-      
-      const results = [];
-      const MAX_LINES = Math.min(lines.length, 50); // Just process first 50 so we don't crash browser for demo
-      
-      for(let i = 0; i < MAX_LINES; i++) {
-        // Rudimentary CSV mapping assuming KDDTrain+ column order
-        // Columns index matches our required features roughly, or we just map basic ones.
-        // For demonstration, we'll try to parse a generic CSV or just map randomly if format mismatched
-        const cols = lines[i].split(',').map(s => s.trim());
+      try {
+        const text = e.target.result;
+        const allLines = text.split('\n').filter(line => line.trim().length > 0);
         
-        let fileFeatures = {};
-        if (cols.length >= 41) {
-          fileFeatures = {
-            duration: cols[0],
-            protocol_type: cols[1],
-            service: cols[2],
-            flag: cols[3],
-            src_bytes: cols[4],
-            dst_bytes: cols[5],
-            land: cols[6],
-            wrong_fragment: cols[7],
-            urgent: cols[8],
-            logged_in: cols[11],
-            num_failed_logins: cols[10],
-            su_attempted: cols[14],
-            count: cols[22],
-            srv_count: cols[23],
-            same_srv_rate: cols[28],
-            diff_srv_rate: cols[29]
-          };
-        } else {
-          // If the CSV isn't perfectly NSL-KDD, we just fill randomly to show the system processing
-          fileFeatures = { ...features, src_bytes: Math.floor(Math.random()*1000) };
+        // Skip header row if it starts with a non-numeric character (e.g. 'duration')
+        const firstChar = allLines[0] ? allLines[0][0] : '';
+        const dataLines = isNaN(parseInt(firstChar)) ? allLines.slice(1) : allLines;
+
+        if (dataLines.length === 0) {
+          setBulkError('File appears empty or contains only a header row.');
+          setIsProcessingBulk(false);
+          return;
         }
 
-        try {
-          const pred = await simulateMLPrediction(fileFeatures);
-          results.push({ row: i+1, ...pred, raw: fileFeatures });
+        const results = [];
+        const MAX_LINES = Math.min(dataLines.length, 50);
+        let attackCount = 0;
+        let normalCount = 0;
+        
+        for (let i = 0; i < MAX_LINES; i++) {
+          const cols = dataLines[i].split(',').map(s => s.trim());
           
-          if (pred.prediction === 'ATTACK') {
-             onAlertGenerated({
-              id: `alert-bulk-${Date.now()}-${i}`,
-              timestamp: new Date().toLocaleTimeString(),
-              severity: parseFloat(pred.confidence) > 90 ? 'CRITICAL' : 'HIGH',
-              attackType: pred.attackType,
-              srcIP: `CSV Row ${i+1}`,
-              dstIP: 'System',
-              confidence: pred.confidence,
-              status: 'new'
-            });
+          let fileFeatures = {};
+          if (cols.length >= 41) {
+            // NSL-KDD / KDD99 column mapping
+            fileFeatures = {
+              duration:          cols[0],
+              protocol_type:     cols[1],
+              service:           cols[2],
+              flag:              cols[3],
+              src_bytes:         cols[4],
+              dst_bytes:         cols[5],
+              land:              cols[6],
+              wrong_fragment:    cols[7],
+              urgent:            cols[8],
+              num_failed_logins: cols[10],
+              logged_in:         cols[11],
+              su_attempted:      cols[14],
+              count:             cols[22],
+              srv_count:         cols[23],
+              same_srv_rate:     cols[28],
+              diff_srv_rate:     cols[29]
+            };
+          } else {
+            // Generic/unknown CSV – use random features to demonstrate model
+            fileFeatures = { ...features, src_bytes: Math.floor(Math.random() * 5000) };
           }
-        } catch(e) {
-          console.error("Bulk processing error on line", i);
+
+          try {
+            const pred = await simulateMLPrediction(fileFeatures);
+            results.push({ row: i + 1, ...pred, raw: fileFeatures });
+            
+            if (pred.prediction === 'ATTACK') {
+              attackCount++;
+              onAlertGenerated({
+                id: `alert-bulk-${Date.now()}-${i}`,
+                timestamp: new Date().toLocaleTimeString(),
+                severity: parseFloat(pred.confidence) > 90 ? 'CRITICAL' : 'HIGH',
+                attackType: pred.attackType,
+                srcIP: `CSV Row ${i + 1}`,
+                dstIP: 'System',
+                confidence: pred.confidence,
+                status: 'new'
+              });
+            } else {
+              normalCount++;
+            }
+          } catch (rowErr) {
+            console.error('Bulk processing error on row', i + 1, rowErr);
+            results.push({ row: i + 1, prediction: 'ERROR', attackType: 'Parse Error', confidence: '0', raw: fileFeatures });
+          }
         }
+        
+        const errorCount = results.filter(r => r.prediction === 'ERROR').length;
+        setBulkResults(results);
+        setBulkStats({ total: MAX_LINES, attacks: attackCount, normal: normalCount, errors: errorCount, fileName: file.name });
+        // If every row failed, likely the backend is offline
+        if (errorCount === MAX_LINES) {
+          setBulkError('All rows failed — Python backend may be offline. Start the Flask server and try again.');
+        }
+      } catch (globalErr) {
+        setBulkError(`Failed to read file: ${globalErr.message}`);
+      } finally {
+        setIsProcessingBulk(false);
       }
-      
-      setBulkResults(results);
+    };
+    reader.onerror = () => {
+      setBulkError('Failed to read the file. Please try again.');
       setIsProcessingBulk(false);
     };
     reader.readAsText(file);
+  }, [features, onAlertGenerated]);
+
+  const handleFileInputChange = (event) => {
+    const file = event.target.files[0];
+    processFile(file);
+    // Reset input so the same file can be re-selected
+    event.target.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    processFile(file);
   };
 
   return (
@@ -360,41 +427,126 @@ const PacketAnalyzer = ({ onAlertGenerated }) => {
               <UploadCloud size={16} className="text-accentPrimary" /> Bulk Dataset Processing
             </h3>
             
-            <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-gray-700 bg-black/40 rounded-xl mb-6 hover:border-accentPrimary hover:bg-accentPrimary/5 transition-colors cursor-pointer" onClick={() => fileInputRef.current.click()}>
-              <FileText size={48} className="text-gray-500 mb-4" />
-              <p className="text-gray-300 font-mono tracking-wide">Click to browse or drag and drop NSL-KDD CSV</p>
-              <p className="text-xs text-gray-600 font-mono mt-2">Processes up to 50 rows per batch for demo stability</p>
-              <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.txt" onChange={handleFileUpload} />
-            </div>
+            {/* Drop zone */}
+            <motion.div
+              onClick={() => { setBulkError(null); fileInputRef.current.click(); }}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              animate={isDragging ? { scale: 1.02, borderColor: 'rgb(0,200,150)' } : { scale: 1 }}
+              className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-xl mb-6 cursor-pointer transition-colors duration-200
+                ${isDragging ? 'border-accentPrimary bg-accentPrimary/10' : 'border-gray-700 bg-black/40 hover:border-accentPrimary hover:bg-accentPrimary/5'}`}
+            >
+              <UploadCloud size={48} className={`mb-4 transition-colors ${isDragging ? 'text-accentPrimary' : 'text-gray-500'}`} />
+              {uploadedFileName ? (
+                <p className="text-accentPrimary font-mono tracking-wide text-sm">
+                  ✓ {uploadedFileName}
+                </p>
+              ) : (
+                <p className="text-gray-300 font-mono tracking-wide">Click to browse or drag & drop a CSV file</p>
+              )}
+              <p className="text-xs text-gray-600 font-mono mt-2">NSL-KDD / KDD99 format · Processes up to 50 rows · .csv or .txt</p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".csv,.txt"
+                onChange={handleFileInputChange}
+              />
+            </motion.div>
+
+            {/* Error banner */}
+            {bulkError && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 bg-accentDanger/10 border border-accentDanger/40 text-accentDanger p-4 rounded-lg mb-6 font-mono text-sm"
+              >
+                <XCircle size={18} className="shrink-0" />
+                {bulkError}
+              </motion.div>
+            )}
 
             {isProcessingBulk ? (
               <div className="flex flex-col items-center p-10 font-mono text-accentPrimary">
-                 <div className="w-12 h-12 border-2 border-accentPrimary/30 border-t-accentPrimary rounded-full animate-spin mb-4"></div>
-                 <p className="animate-pulse">Iterating through rows via Backend API...</p>
+                <div className="w-12 h-12 border-2 border-accentPrimary/30 border-t-accentPrimary rounded-full animate-spin mb-4"></div>
+                <p className="animate-pulse">Iterating through rows via Backend API...</p>
               </div>
-            ) : bulkResults.length > 0 ? (
-               <div className="border border-gray-800 rounded-lg overflow-hidden bg-black/60">
-                 <div className="grid grid-cols-5 p-3 bg-gray-900 border-b border-gray-800 font-mono text-xs text-gray-400 font-bold uppercase tracking-wider">
-                   <div>Row #</div>
-                   <div>Protocol</div>
-                   <div>Src Bytes</div>
-                   <div>API Result</div>
-                   <div className="text-right">Confidence</div>
-                 </div>
-                 <div className="max-h-64 overflow-y-auto">
+            ) : bulkStats ? (
+              <div className="space-y-4">
+                {/* Summary stats — 4 cards when errors exist, 3 otherwise */}
+                <div className={`grid gap-4 mb-4 ${bulkStats.errors > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <div className="glass-panel p-4 rounded-lg border border-gray-800 text-center">
+                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">Total</p>
+                    <p className="text-2xl font-bold text-white font-display">{bulkStats.total}</p>
+                  </div>
+                  <div className="glass-panel p-4 rounded-lg border border-accentPrimary/30 text-center">
+                    <p className="font-mono text-xs text-accentPrimary uppercase tracking-widest mb-1">Normal</p>
+                    <p className="text-2xl font-bold text-accentPrimary font-display">{bulkStats.normal}</p>
+                  </div>
+                  <div className="glass-panel p-4 rounded-lg border border-accentDanger/30 text-center">
+                    <p className="font-mono text-xs text-accentDanger uppercase tracking-widest mb-1">Attacks</p>
+                    <p className="text-2xl font-bold text-accentDanger font-display">{bulkStats.attacks}</p>
+                  </div>
+                  {bulkStats.errors > 0 && (
+                    <div className="glass-panel p-4 rounded-lg border border-gray-600/40 text-center">
+                      <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">API Errors</p>
+                      <p className="text-2xl font-bold text-gray-400 font-display">{bulkStats.errors}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Results table */}
+                <div className="border border-gray-800 rounded-lg overflow-hidden bg-black/60">
+                  <div className="grid grid-cols-5 p-3 bg-gray-900 border-b border-gray-800 font-mono text-xs text-gray-400 font-bold uppercase tracking-wider">
+                    <div>Row #</div>
+                    <div>Protocol</div>
+                    <div>Src Bytes</div>
+                    <div>API Result</div>
+                    <div className="text-right">Confidence</div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
                     {bulkResults.map((res, i) => (
-                      <div key={i} className={`grid grid-cols-5 p-3 font-mono text-xs border-b border-gray-800/50 ${res.prediction === 'ATTACK' ? 'bg-red-900/10 text-red-200' : 'text-gray-300'}`}>
-                        <div>{res.row}</div>
-                        <div>{res.raw.protocol_type}</div>
-                        <div>{res.raw.src_bytes}</div>
-                        <div>
-                          <span className={`px-2 py-0.5 rounded ${res.prediction === 'ATTACK'?'bg-accentDanger text-white':'bg-accentPrimary/20 text-accentPrimary'}`}>{res.attackType}</span>
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.02 }}
+                        className={`grid grid-cols-5 p-3 font-mono text-xs border-b border-gray-800/50
+                          ${res.prediction === 'ATTACK'
+                            ? 'bg-accentDanger/8 text-red-200'
+                            : res.prediction === 'ERROR'
+                            ? 'bg-gray-900/60 text-gray-500'
+                            : 'text-gray-300'}`}
+                      >
+                        <div className={res.prediction === 'ERROR' ? 'text-gray-600' : ''}>
+                          #{res.row}
                         </div>
-                        <div className="text-right">{res.confidence}%</div>
-                      </div>
+                        <div>{res.raw?.protocol_type ?? '—'}</div>
+                        <div>{res.raw?.src_bytes ?? '—'}</div>
+                        <div>
+                          {res.prediction === 'ERROR' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono tracking-wider text-gray-600 border border-gray-700/60 bg-black/40">
+                              API OFFLINE
+                            </span>
+                          ) : res.prediction === 'ATTACK' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accentDanger text-white cyber-glow-danger">
+                              {res.attackType}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accentPrimary/20 text-accentPrimary border border-accentPrimary/30">
+                              {res.attackType}
+                            </span>
+                          )}
+                        </div>
+                        <div className={`text-right ${res.prediction === 'ERROR' ? 'text-gray-700' : ''}`}>
+                          {res.prediction === 'ERROR' ? '—' : `${res.confidence}%`}
+                        </div>
+                      </motion.div>
                     ))}
-                 </div>
-               </div>
+                  </div>
+                </div>
+              </div>
             ) : null}
           </motion.div>
         )}
