@@ -1,15 +1,7 @@
 <div align="center">
 
-```
-██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗███████╗    ███╗   ███╗ █████╗ ████████╗██████╗ ██╗██╗  ██╗
-██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝██╔════╝    ████╗ ████║██╔══██╗╚══██╔══╝██╔══██╗██║╚██╗██╔╝
-██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║███████╗█████╗      ██╔████╔██║███████║   ██║   ██████╔╝██║ ╚███╔╝ 
-██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║╚════██║██╔══╝      ██║╚██╔╝██║██╔══██║   ██║   ██╔══██╗██║ ██╔██╗ 
-██████╔╝███████╗██║     ███████╗██║ ╚████║███████║███████╗    ██║ ╚═╝ ██║██║  ██║   ██║   ██║  ██║██║██╔╝ ██╗
-╚═════╝ ╚══════╝╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝    ╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝
-```
-
-### 🛡️ Defense Matrix — Full-Stack ML Network Intrusion Detection System
+# 🛡️ Net Defender
+### Full-Stack ML Network Intrusion Detection System
 
 <br/>
 
@@ -190,7 +182,7 @@ python train_model.py
 
 ```bash
 # Right-click your terminal → "Run as Administrator", then:
-cd "Major pro/backend"
+cd backend
 python app.py
 ```
 
@@ -268,31 +260,6 @@ EventSource (SSE)           SQLite (nids.db)            NSL-KDD Dataset
 ```
 
 ---
-
-## 📁 Project Structure
-
-```
-Major pro/
-├── backend/
-│   ├── app.py                  # Flask API + Scapy daemon + SSE endpoint
-│   ├── feature_extractor.py    # FlowTracker + 16-feature extraction from raw packets
-│   ├── train_model.py          # NSL-KDD downloader + Random Forest trainer
-│   └── nids.db                 # SQLite auth database (auto-generated)
-├── src/
-│   ├── components/
-│   │   ├── Dashboard.jsx        # System overview + live charts
-│   │   ├── PacketAnalyzer.jsx   # Manual form + Bulk CSV upload
-│   │   ├── LiveMonitor.jsx      # SSE stream consumer + sniffer status
-│   │   ├── AlertsCenter.jsx     # Incident response queue
-│   │   ├── ModelInfo.jsx        # Architecture glossary
-│   │   └── Login.jsx            # Secure gateway
-│   ├── utils/
-│   │   └── api.js               # Authenticated fetch helpers
-│   └── App.jsx                  # Router + global alert state
-├── nsl_kdd_rf_model.pkl         # Trained model weights
-├── label_encoders.pkl           # Categorical feature encoders
-└── KDDTrain.txt                 # NSL-KDD training dataset
-```
 
 ---
 
